@@ -7,3 +7,4 @@ C = float(input())
 AC = abs(C - A)
 BC = abs(B - C)
 composition = AC * BC
+print(composition)

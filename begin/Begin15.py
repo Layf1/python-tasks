@@ -5,3 +5,5 @@ S = float(abs())
 R = (S ** 0.5) / 3.14
 L = 2 * 3.14 * R
 D = R * 2
+print(L)
+print(D)

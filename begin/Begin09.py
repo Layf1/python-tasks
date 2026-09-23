@@ -3,3 +3,4 @@
 a = float(abs())
 b = float(abs())
 average = (a * b) ** 0.5
+print(average)

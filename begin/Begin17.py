@@ -6,3 +6,6 @@ C = float(input())
 AC = abs(C - A)
 BC = abs(C - B)
 summ = AC + BC
+print(AC)
+print(BC)
+print(summ)

@@ -3,3 +3,5 @@
 R = float(input("Радиус"))
 length = 2 * 3.14 * R
 area = 3.14 * R ** 2 
+print(length)
+print(area)

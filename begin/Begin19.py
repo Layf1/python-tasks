@@ -9,3 +9,5 @@ side = abs(x2 - X1)
 height = abs(y2 - y1)
 P = 2 * (side + height)
 S = side * height
+print(P)
+print(S)

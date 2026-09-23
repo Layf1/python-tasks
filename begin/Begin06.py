@@ -5,3 +5,5 @@ length = float(input("Длинна"))
 width = float(input("Ширина"))
 volume = height * length * width
 surface = 2 * (height * length + length * width + width * height)
+print(volume)
+print(surface)
