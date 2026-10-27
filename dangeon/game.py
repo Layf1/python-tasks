@@ -2,8 +2,8 @@
 # ИГРА «ПОДЗЕМЕЛЬЕ: ОСТРЫЕ ПИКИ»
 # Автор: Веселов Павел
 # Дата: сентябрь 2026
-# ================================================
 import random
+
 # --- Заголовок ------------------------------------
 title = "ОСТРЫЕ ПИКИ"
 frame = "=" * 17
@@ -63,9 +63,10 @@ print(f"Критический урон: {crit_damage:.1f}")
 running = True
 actions = 0
 outcome = "прерывание"
-menu_last = 7
+menu_last = 8
 enemies = ["ghoul", "skeleton", "spider", "bat"]
-log = []
+log = []  # Журнал боя: список списков [[раунд, урон_героя, урон_врага], ...]
+
 try:
     while running:
         print("\nЧто делаешь?")
@@ -76,6 +77,7 @@ try:
         print("5 - попытаться кого-нибудь позвать")
         print("6 - тренировка")
         print("7 - descend deeper")
+        print("8 - leaderboard")
         print("0 - выйти из подземелья")
 
         while True:
@@ -145,59 +147,67 @@ try:
                 stamina = stamina - 2
 
             case "7":
-            # Проверка: если список врагов пуст
-             if not enemies:
-                print("The dungeon is empty.")
-             else:
-                enemy = random.choice(enemies)
-                enemy_hp = 45
-                round_n = 0
-                
-                print(f"You descend the stairs. A {enemy} emerges from the darkness!")
-                
-                # Бой циклом while
-                while enemy_hp > 0 and health > 0:
-                    round_n += 1
+                if not enemies:
+                    print("The dungeon is empty.")
+                else:
+                    enemy = random.choice(enemies)
+                    enemy_hp = 45
+                    round_n = 0
                     
-                    if round_n % 3 == 0:
-                        hit_damage = crit_damage
-                        crit_str = " — critical!"
-                    else:
-                        hit_damage = damage
-                        crit_str = ""
+                    print(f"You descend the stairs. A {enemy} emerges from the darkness!")
+                    
+                    # Бой циклом while
+                    while enemy_hp > 0 and health > 0:
+                        round_n += 1
                         
-                    enemy_hp -= hit_damage
-                    
-                    # Ответный урон врага
-                    enemy_strike = random.randint(2, 6)
-                    
-                    if enemy_hp <= 0:
-                        round_str = f"Round {round_n}: you deal {hit_damage:.1f} damage{crit_str} The enemy falls."
-                        print(round_str)
-                        log.append(f"round {round_n}: hero -{hit_damage:.1f}, {enemy} -{enemy_hp + hit_damage:.1f}")
-                        break
-                    else:
-                        health -= enemy_strike
-                        round_str = f"Round {round_n}: you deal {hit_damage:.1f} damage{crit_str}. {enemy} health: {enemy_hp:.1f}. {enemy} hits back for {enemy_strike}."
-                        print(round_str)
-                        log.append(f"round {round_n}: hero -{hit_damage:.1f}, {enemy} -{enemy_strike}")
+                        if round_n % 3 == 0:
+                            hit_damage = crit_damage
+                            crit_str = " — critical!"
+                        else:
+                            hit_damage = damage
+                            crit_str = ""
+                            
+                        enemy_hp -= hit_damage
+                        
+                        # Ответный урон врага
+                        enemy_strike = random.randint(2, 6)
+                        
+                        if enemy_hp <= 0:
+                            line = f"Round {round_n}: you deal {hit_damage:.1f} damage{crit_str} Enemy falls."
+                            log.append([round_n, hit_damage, 0])
+                            print(line)
+                            break
+                        else:
+                            health -= enemy_strike
+                            line = f"Round {round_n}: you deal {hit_damage:.1f} damage{crit_str}. {enemy} health: {enemy_hp:.1f}. {enemy} hits back for {enemy_strike}."
+                            log.append([round_n, hit_damage, enemy_strike])
+                            print(line)
 
-                # Итог боя
-                if enemy_hp <= 0:
-                    enemies.remove(enemy)
-                    print(f"The {enemy} is defeated! {len(enemies)} enemies left in the dungeon.")
-                    print(f"Combat: {round_n} rounds.")
-                    
-                    if log:
-                        print(log[-1])
+                    # Итог боя
+                    if enemy_hp <= 0:
+                        enemies.remove(enemy)
+                        print(f"The {enemy} is defeated! {len(enemies)} enemies left in the dungeon.")
+                        print(f"Battle: {round_n} rounds.")
+
+            case "8":
+                if not log:
+                    print("You haven't fought yet.")
+                else:
+                    top = sorted(log, key=lambda r: r[1], reverse=True)[:3]
+                    print("Leaderboard (hero damage):")
+                    for i in range(len(top)):
+                        print(f"{i + 1}. Round {top[i][0]}: {top[i][1]:.1f}")
+
+                    worst = max(log, key=lambda r: r[2])
+                    print(f"Strongest enemy hit: {worst[2]} (round {worst[0]}).")
 
         print(f"Здоровье: {health} | Запас сил: {stamina} | Врагов осталось: {len(enemies)}")
-
+                
         if stamina <= 0:
             print("Вы обессилели и не можете продолжать путь.")
             outcome = "гибель"
             running = False
-
+            
 except KeyboardInterrupt:
     print()
     print("Игрок прервал сеанс.")
@@ -216,3 +226,11 @@ finally:
         print(f"Забег окончен, {hero_name}. Действий совершено: {actions}.")
     else:
         print(f"Сеанс прерван, {hero_name}. Действий совершено: {actions}.")
+
+    # Вывод итогов по урону с использованием агрегаторов (sum, len)
+    rounds = len(log)
+    if rounds > 0:
+        total = sum(r[1] for r in log)
+        print(f"Damage: {total:.1f} across {rounds} rounds, average {total / rounds:.1f}.")
+    else:
+        print("No battles this run.")
