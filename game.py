@@ -7,7 +7,7 @@ import random
 # --- Заголовок ------------------------------------
 title = "ОСТРЫЕ ПИКИ"
 frame = "=" * 17
-print(frame)        
+print(frame)         
 print(" " + title + " ")
 print(frame)
 print()
@@ -49,6 +49,10 @@ base_attack = 10
 damage = base_attack + strength * 1.5
 crit_damage = damage * 2
 
+# --- Потолки характеристик -------------------------
+max_health = health
+max_stamina = stamina
+
 # --- Формуляр героя --------------------------------
 print("Характеристики героя:")
 print(f"Здоровье: {health}")
@@ -58,8 +62,6 @@ print(f"Интеллект: {intellect}")
 print(f"Выносливость: {stamina}")
 print(f"Урон героя: {damage:.1f}")
 print(f"Критический урон: {crit_damage:.1f}")
-
-
 
 
 def hero_hit(strike_n):
@@ -72,11 +74,12 @@ def hero_hit(strike_n):
     return damage, False
 
 
-def fight(enemy, hero_health):
+def fight(enemy, hero_health, bonus=0):
     """Бой с врагом до гибели одного из двоих.
-    Печатает строки раундов. Возвращает (rounds, won, hero_health).
-    Глобальные переменные не меняет: здоровье приходит параметром
-    и возвращается новым значением.
+    bonus — надбавка к урону героя, по умолчанию 0: без эликсира
+    бой идёт как прежде. Печатает строки раундов.
+    Возвращает (rounds, won, hero_health, loot).
+    Бонус прибавляется к урону удара после определения крита.
     """
     enemy_hp = 45.0
     rounds = []
@@ -87,6 +90,7 @@ def fight(enemy, hero_health):
     while enemy_hp > 0 and hero_health > 0:
         round_n += 1
         hit, crit = hero_hit(round_n)
+        hit = hit + bonus  # Прибавление бонуса эликсира
         enemy_hp -= hit
         
         line = f"Round {round_n}: hero deals {hit:.1f}"
@@ -105,7 +109,24 @@ def fight(enemy, hero_health):
             rounds.append([round_n, hit, blow])
             print(line)
             
-    return rounds, enemy_hp <= 0, hero_health
+    won = enemy_hp <= 0
+    if won:
+        loot = 25
+    else:
+        loot = 0
+        
+    return rounds, won, hero_health, loot
+
+
+def buy(price, gold, quantity=1):
+    """Покупает quantity штук товара ценой price за золото gold.
+    quantity по умолчанию 1. Возвращает (gold_left, ok): остаток
+    золота и признак успешной покупки. Ничего не печатает.
+    """
+    cost = price * quantity
+    if gold >= cost:
+        return gold - cost, True
+    return gold, False
 
 
 def print_leaderboard(log):
@@ -141,9 +162,11 @@ def print_run_summary(log):
 running = True
 actions = 0
 outcome = "прерывание"
-menu_last = 8
+menu_last = 9
 enemies = ["ghoul", "skeleton", "spider", "bat"]
 log = []  # Журнал боя: таблица (список списков)
+gold_total = 0
+ability_bonus = 0
 
 # --- Главный цикл игры -----------------------------
 try:
@@ -157,6 +180,7 @@ try:
         print("6 - тренировка")
         print("7 - descend deeper")
         print("8 - leaderboard")
+        print("9 - shop")
         print("0 - выйти из подземелья")
 
         while True:
@@ -209,6 +233,7 @@ try:
 
                 for i in range(1, strikes + 1):
                     hit_damage, crit = hero_hit(i)
+                    hit_damage = hit_damage + ability_bonus
                     if crit:
                         print(f"Удар {i}: {hit_damage:.1f} — критический!")
                         crit_count += 1
@@ -229,20 +254,60 @@ try:
                     print("You descend the stairs. But the dungeon is empty.")
                 else:
                     enemy = random.choice(enemies)
-                    rounds, won, health = fight(enemy, health)
+                    rounds, won, health, loot = fight(enemy, health, bonus=ability_bonus)
                     
                     for r in rounds:
                         log.append(r)
                         
                     if won:
+                        gold_total += loot
                         enemies.remove(enemy)
-                        print(f"{enemy.capitalize()} defeated! {len(enemies)} enemies left in the dungeon.")
+                        print(f"{enemy.capitalize()} defeated! {len(enemies)} enemies left in the dungeon. Loot: {loot} gold.")
                         print(f"Battle: {len(rounds)} rounds.")
 
             case "8":
                 print_leaderboard(log)
 
-        print(f"Здоровье: {health} | Запас сил: {stamina} | Врагов осталось: {len(enemies)}")
+            case "9":
+                print("Shop:")
+                print("1 - potion (+10 health): 10 gold")
+                print("2 - torch oil (+5 stamina): 15 gold")
+                print("3 - war elixir (+2 damage for the run): 40 gold")
+                print("Item number (0 not buying):")
+                
+                item = input()
+                prices = (10, 15, 40)
+                names = ("potion", "torch oil", "war elixir")
+                
+                if item in ("1", "2", "3"):
+                    idx = int(item) - 1
+                    price = prices[idx]
+                    name = names[idx]
+                    
+                    print("Quantity (Enter for one):")
+                    qty_line = input()
+                    
+                    if qty_line == "":
+                        qty = 1
+                        gold_total, ok = buy(price, gold_total)
+                    else:
+                        qty = int(qty_line)
+                        gold_total, ok = buy(price, gold_total, quantity=qty)
+                        
+                    if ok:
+                        if item == "1":
+                            health = min(health + 10 * qty, max_health)
+                        elif item == "2":
+                            stamina = min(stamina + 5 * qty, max_stamina)
+                        else:
+                            ability_bonus += 2 * qty
+                        print(f"Bought {qty} {name} for {price * qty} gold. Gold left: {gold_total}.")
+                    else:
+                        print(f"Not enough gold: need {price * qty}, have {gold_total}.")
+                elif item != "0":
+                    print("No such item in the shop.")
+
+        print(f"Health: {health} | Stamina: {stamina} | Enemies left: {len(enemies)} | Gold: {gold_total}")
                 
         if stamina <= 0:
             print("Вы обессилели и не можете продолжать путь.")
